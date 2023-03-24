@@ -25,26 +25,26 @@ chsiverify.verify_chsi(verify_code)
 | 无效的验证码       | str  | 此在线验证码无效！                         |
 | 有效返回           | dict | 见 verify_data                             |
 
-```
-    verify_data = {
-        'title': 标题,
-        'name': 姓名,
-        'gender': 性别,
-        'pid': 身份证号,
-        'ethnic': 民族,
-        'birthday': 出生日期,
-        'portrait': 录取照片,
-        'institution': 院校,
-        'degree': 层次,
-        'school': 院系,
-        'class': 班级,
-        'major': 专业,
-        'sid': 学号,
-        'form': 形式,
-        'admission': 入学时间,
-        'system': 入学时间,
-        'type': 类型,
-        'state': 学籍状态
-    }
+```python
+        verify_data = {
+            'portrait': portrait,  # 头像
+            'title': title,  # 标题
+            'name': name,  # 姓名
+            'gender': gender,  # 性别
+            'birthday': birthday,  # 生日
+            'ethnic': ethnic,  # 民族
+            'pid': pid,  # 身份证号
+            'university': university,  # 学校
+            'degree': degree,  # 层次
+            'school': school,  # 学院
+            'class': classes,  # 班级
+            'major': major,  # 专业
+            'sid': sid,  # 学号
+            'form': forms,  # 学制
+            'type': types,  # 类型
+            'system': system,  # 形式
+            'admission': admission,  # 入学时间
+            'state': state  # 学籍状态
+        }
 ```
 

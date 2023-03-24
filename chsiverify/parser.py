@@ -1,8 +1,20 @@
 import requests
 import json
+import time
+
 from lxml import etree
+from selenium.webdriver.common.by import By
+import undetected_chromedriver as webdriver
+from requests.utils import cookiejar_from_dict
+from requests.cookies import RequestsCookieJar
 
 session = requests.session()
+
+header = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/111.0.0.0 Safari/537.36',
+
+}
 
 site_url = 'https://www.chsi.com.cn'
 verify_url_prefix = "https://www.chsi.com.cn/xlcx/bg.do?vcode="
@@ -38,16 +50,38 @@ def extract_from_xpath(tree, path):
     return decode_element(ret[0])
 
 
+def get_cookies(verify_url):
+    option = webdriver.ChromeOptions()
+    option.add_argument('--headless')
+    option.add_argument('--incognito')
+    driver = webdriver.Chrome(options=option)
+    driver.get(verify_url)
+    cookies_raw = driver.get_cookies()
+    cookies = {}
+    for cookie in cookies_raw:
+        cookies[cookie['name']] = cookie['value']
+    driver.quit()
+    return cookies
+
+
 def verify_chsi(verify_code: str):
     verify_url = verify_url_prefix + verify_code
-    ret = session.get(verify_url).text
+    cookies = get_cookies(verify_url)
+    cookiejar = RequestsCookieJar()
+    for key in cookies:
+        cookiejar.set(key, cookies[key], domain='www.chsi.com.cn', path='/')
+    session.cookies = cookiejar
+    response = requests.get(verify_url, headers=header)
+    ret = response.text
     report_html = etree.HTML(ret)
     captcha = extract_from_xpath(report_html, '//*[@id="getXueLi"]/table/tr[1]/td[3]/img')
     if captcha is not None:
         captcha = simple_parser(captcha)['img']['src'][-4:]
         captcha_token = extract_from_xpath(report_html, '//*[@id="getXueLi"]/table/tr[1]/td[3]/input')
         captcha_token = simple_parser(captcha_token)['input']['value']
-        ret = session.post(captcha_url, data={'cap': captcha, 'capachatok': captcha_token, 'submit': '继续'}).text
+        response = session.post(captcha_url, data={'cap': captcha, 'capachatok': captcha_token, 'submit': '继续'},
+                                headers=header)
+        ret = response.text
     report_html = etree.HTML(ret)
     warning = extract_from_xpath(report_html, '//*[@id="rightCnt"]/div/div/h2/text()')
     if warning is not None:
@@ -55,44 +89,46 @@ def verify_chsi(verify_code: str):
     warning = extract_from_xpath(report_html, '//*[@id="msgDiv"]/text()')
     if warning is not None:
         return warning
-    title = extract_from_xpath(report_html, '//*[@id="resultTable"]/div[1]/text()')
-    name = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[1]/tr[1]/td[2]/img')
-    name = site_url + simple_parser(name)['img']['src']
-    gender = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[1]/tr[2]/td[2]/div/text()')
-    pid = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[1]/tr[2]/td[4]/div/text()')
-    ethnic = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[1]/tr[3]/td[2]/div/text()')
-    birthday = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[1]/tr[3]/td[4]/div/text()')
-    portrait = extract_from_xpath(report_html, '//*[@id="photoPositon"]')
-    portrait = site_url + simple_parser(portrait)['img']['src']
-    institution = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[1]/td[2]/div/text()')
-    degree = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[1]/td[4]/div/text()')
-    school = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[2]/td[2]/div/text()')
-    classes = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[2]/td[4]/div/text()')
-    major = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[3]/td[2]/div/text()')
-    sid = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[3]/td[4]/div/text()')
-    forms = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[4]/td[2]/div/text()')
-    admission = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[4]/td[4]/div/text()')
-    system = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[4]/td[6]/div/text()')
-    types = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[5]/td[2]/div/text()')
-    state = extract_from_xpath(report_html, '//*[@id="fixedPart"]/table[2]/tr[5]/td[4]/div/text()')
-    verify_data = {
-        'title': title,
-        'name': name,
-        'gender': gender,
-        'pid': pid,
-        'ethnic': ethnic,
-        'birthday': birthday,
-        'portrait': portrait,
-        'institution': institution,
-        'degree': degree,
-        'school': school,
-        'class': classes,
-        'major': major,
-        'sid': sid,
-        'form': forms,
-        'admission': admission,
-        'system': system,
-        'type': types,
-        'state': state
-    }
+    try:
+        portrait = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[1]/img')
+        portrait = site_url + simple_parser(portrait)['img']['src']
+        title = extract_from_xpath(report_html, '/html/body/div[2]/div/div[4]/div/div/div[3]/div/h4/text()')
+        name = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[2]/div[2]/text()')
+        gender = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[3]/div[2]/text()')
+        birthday = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[4]/div[2]/text()')
+        ethnic = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[5]/div[2]/text()')
+        pid = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[6]/div[2]/text()')
+        university = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[7]/div[2]/text()')
+        degree = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[8]/div[2]/text()')
+        school = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[9]/div[2]/text()')
+        classes = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[10]/div[2]/text()')
+        major = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[11]/div[2]/text()')
+        sid = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[12]/div[2]/text()')
+        forms = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[13]/div[2]/text()')
+        types = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[14]/div[2]/text()')
+        system = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[15]/div[2]/text()')
+        admission = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[16]/div[2]/text()')
+        state = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[17]/div[2]/text()')
+        verify_data = {
+            'portrait': portrait,  # 头像
+            'title': title,  # 标题
+            'name': name,  # 姓名
+            'gender': gender,  # 性别
+            'birthday': birthday,  # 生日
+            'ethnic': ethnic,  # 民族
+            'pid': pid,  # 身份证号
+            'university': university,  # 学校
+            'degree': degree,  # 层次
+            'school': school,  # 学院
+            'class': classes,  # 班级
+            'major': major,  # 专业
+            'sid': sid,  # 学号
+            'form': forms,  # 学制
+            'type': types,  # 类型
+            'system': system,  # 形式
+            'admission': admission,  # 入学时间
+            'state': state  # 学籍状态
+        }
+    except:
+        return "意外解析失败，请联系管理员修复并暂时尝试认证其他方式"
     return verify_data
