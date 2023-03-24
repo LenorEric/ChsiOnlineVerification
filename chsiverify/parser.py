@@ -1,11 +1,8 @@
 import requests
 import json
-import time
 
 from lxml import etree
-from selenium.webdriver.common.by import By
 import undetected_chromedriver as webdriver
-from requests.utils import cookiejar_from_dict
 from requests.cookies import RequestsCookieJar
 
 session = requests.session()
