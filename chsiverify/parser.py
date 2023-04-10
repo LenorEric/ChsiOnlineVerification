@@ -51,6 +51,8 @@ def get_cookies(verify_url):
     option = webdriver.ChromeOptions()
     option.add_argument('--headless')
     option.add_argument('--incognito')
+    option.add_argument('--disable-gpu')
+    option.add_argument('--no-sandbox')
     driver = webdriver.Chrome(options=option)
     driver.get(verify_url)
     cookies_raw = driver.get_cookies()
