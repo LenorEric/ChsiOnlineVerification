@@ -90,7 +90,6 @@ def verify_chsi(verify_code: str):
         need_captcha = True
 
     if need_captcha:
-        print("need captcha")
         cookies_sel = get_cookies(verify_url)
         cookiejar = RequestsCookieJar()
         for key in cookies_sel:
