@@ -12,7 +12,7 @@ from requests.cookies import RequestsCookieJar
 session = requests.session()
 
 header = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+    'User-Agent': 'AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/111.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;'
               'q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -90,6 +90,7 @@ def verify_chsi(verify_code: str):
         need_captcha = True
 
     if need_captcha:
+        print("need captcha")
         cookies_sel = get_cookies(verify_url)
         cookiejar = RequestsCookieJar()
         for key in cookies_sel:
@@ -102,13 +103,13 @@ def verify_chsi(verify_code: str):
         result = ret
 
     report_html = etree.HTML(result)
-    warning = extract_from_xpath(report_html, '//*[@id="rightCnt"]/div/div/h2/text()')
-    if warning is not None:
-        return warning
-    warning = extract_from_xpath(report_html, '//*[@id="msgDiv"]/text()')
-    if warning is not None:
-        return warning
     try:
+        warning = extract_from_xpath(report_html, '//*[@id="rightCnt"]/div/div/h2/text()')
+        if warning is not None:
+            return warning
+        warning = extract_from_xpath(report_html, '//*[@id="msgDiv"]/text()')
+        if warning is not None:
+            return warning
         portrait = extract_from_xpath(report_html, '//*[@id="resultTable"]/div/div[2]/div[1]/img')
         portrait = site_url + simple_parser(portrait)['img']['src']
         title = extract_from_xpath(report_html, '/html/body/div[2]/div/div[4]/div/div/div[3]/div/h4/text()')
