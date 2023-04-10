@@ -2,7 +2,7 @@ import requests
 import json
 
 from lxml import etree
-import undetected_chromedriver as webdriver
+from selenium import webdriver
 from requests.cookies import RequestsCookieJar
 
 session = requests.session()
