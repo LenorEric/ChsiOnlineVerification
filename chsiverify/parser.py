@@ -61,7 +61,10 @@ def extract_from_xpath(tree, path):
 
 def get_cookies(verify_url):
     async def get_cookies_ppr():
-        browser = await pyppeteer.launch(options={'args': ['--no-sandbox']})
+        browser = await pyppeteer.launch(options={'handleSIGINT': False,
+                                                  'handleSIGTERM': False,
+                                                  'handleSIGHUP': False,
+                                                  'args': ['--no-sandbox']})
         page = await browser.newPage()
         await stealth(page)
         await page.goto(verify_url)
