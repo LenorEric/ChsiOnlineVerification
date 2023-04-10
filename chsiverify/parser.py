@@ -1,10 +1,15 @@
 import requests
 import json
+import asyncio
 # import os
 
 from lxml import etree
-from selenium import webdriver
 from requests.cookies import RequestsCookieJar
+
+import pyppeteer
+from pyppeteer_stealth import stealth
+
+# from selenium import webdriver
 
 # os.environ['http_proxy'] = 'http://127.0.0.1:8888'
 # os.environ['https_proxy'] = 'http://127.0.0.1:8888'
@@ -55,23 +60,43 @@ def extract_from_xpath(tree, path):
 
 
 def get_cookies(verify_url):
-    option = webdriver.ChromeOptions()
-    option.add_argument('--headless')
-    option.add_argument('--incognito')
-    option.add_argument('--disable-gpu')
-    option.add_argument('--no-sandbox')
-    option.add_argument('--disable-dev-shm-usage')
-    option.add_argument('--ignore-certificate-errors')
-    option.add_argument("--disable-blink-features=AutomationControlled")
-    option.add_argument('User-Agent={}'.format(header['User-Agent']))  # 配置为自己设置的UA
-    driver = webdriver.Chrome(chrome_options=option)
-    driver.get(verify_url)
-    cookies_raw = driver.get_cookies()
-    cookies = {}
-    for cookie in cookies_raw:
-        cookies[cookie['name']] = cookie['value']
-    driver.quit()
+    async def get_cookies_ppr():
+        browser = await pyppeteer.launch()
+        page = await browser.newPage()
+        await stealth(page)
+        await page.goto(verify_url)
+        cookies_ppr = await page.cookies()
+        return cookies_ppr
+
+    def parse_cookies(_cookies):
+        cookies_dict = {}
+        for cookie in _cookies:
+            cookies_dict[cookie["name"]] = cookie["value"]
+        return cookies_dict
+
+    loop = asyncio.get_event_loop()
+    get_future = asyncio.ensure_future(get_cookies_ppr())
+    loop.run_until_complete(get_future)
+    cookies = get_future.result()
+    cookies = parse_cookies(cookies)
     return cookies
+    # option = webdriver.ChromeOptions()
+    # option.add_argument('--headless')
+    # option.add_argument('--incognito')
+    # option.add_argument('--disable-gpu')
+    # option.add_argument('--no-sandbox')
+    # option.add_argument('--disable-dev-shm-usage')
+    # option.add_argument('--ignore-certificate-errors')
+    # option.add_argument("--disable-blink-features=AutomationControlled")
+    # option.add_argument('User-Agent={}'.format(header['User-Agent']))  # 配置为自己设置的UA
+    # driver = webdriver.Chrome(chrome_options=option)
+    # driver.get(verify_url)
+    # cookies_raw = driver.get_cookies()
+    # cookies = {}
+    # for cookie in cookies_raw:
+    #     cookies[cookie['name']] = cookie['value']
+    # driver.quit()
+    # return cookies
 
 
 def verify_chsi(verify_code: str):

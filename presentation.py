@@ -1,6 +1,6 @@
 from chsiverify import *
 
-verify_code = "AB3YM4WTNM4H3XGU"  # Enter your verify code here
+verify_code = ""  # Enter your verify code here
 
 if __name__ == '__main__':
     while True:
